@@ -216,25 +216,39 @@ class _ConverState extends State<Conver> {
     _initSpeech();
   }
 
-  /// This has to happen only once per app
-  void _initSpeech() async {
+  Future<void> _initSpeech() async {
     bool available = await _speechToText.initialize(
-        onStatus: (val) => print('onStatus: $val'),
-        onError: (val) => print('onError: $val'));
+      onStatus: (val) => print('onStatus: $val'),
+      onError: (val) => print('onError: $val'),
+    );
+
     if (available) {
       setState(() {
         _speechEnabled = true;
       });
+    } else {
+      setState(() {
+        _speechEnabled = false;
+      });
+    }
+  }
+
+  void _startListening() {
+    if (_speechEnabled) {
       _speechToText.listen(
         onResult: (val) => setState(() {
           _lastWords = val.recognizedWords;
           result = isl(_lastWords);
         }),
       );
-    } else {
+    }
+  }
+
+  void _stopListening() {
+    if (_speechEnabled) {
+      _speechToText.stop();
       setState(() {
         _speechEnabled = false;
-        _speechToText.stop();
       });
     }
   }
@@ -260,7 +274,13 @@ class _ConverState extends State<Conver> {
           repeatPauseDuration: const Duration(milliseconds: 100),
           repeat: true,
           child: FloatingActionButton(
-            onPressed: () => _initSpeech(),
+            onPressed: () {
+              if (_speechEnabled) {
+                _startListening();
+              } else {
+                _initSpeech();
+              }
+            },
             child: Icon(_speechEnabled ? Icons.mic : Icons.mic_none),
           ),
         ),
